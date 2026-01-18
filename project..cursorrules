@@ -1,0 +1,22 @@
+# React 프로젝트 개발 규칙 및 구조
+
+## 🏗 프로젝트 아키텍처
+- 우리는 **기능 중심 설계(Feature-Based Architecture)**를 따릅니다.
+- 특정 도메인과 관련된 모든 비즈니스 로직은 `src/features/{feature_name}` 안에 위치합니다.
+- 전역에서 공통으로 사용되는 컴포넌트와 유틸리티는 `src/shared`에 위치합니다.
+
+## 📂 디렉토리 상세 규칙
+- `features/{feature}/pages`: 페이지의 진입점만 작성합니다. (예: MapContentApp.tsx)
+- `features/{feature}/components`: 해당 기능에서만 쓰이는 UI 컴포넌트를 작성합니다.
+  - 모달은 `modals/`, 사이드 메뉴는 `sideMenu/` 처럼 하위 폴더로 세분화합니다.
+- `features/{feature}/hooks`: 해당 기능의 로직을 담당하는 커스텀 훅을 작성합니다.
+- `features/{feature}/services`: API 호출 함수들을 작성하며, `src/api`의 설정을 참조합니다.
+
+## 🛠 코딩 표준
+- 모든 파일은 **TypeScript**를 사용합니다.
+- 컴포넌트는 **화살표 함수(Arrow Functions)**로 작성합니다.
+- 스타일링은 **TailwindCSS**를 우선 사용합니다.
+- 컴포넌트는 가능한 작게 분리하고 하나의 역할에만 집중합니다.
+
+## 🚀 새로운 기능 생성 시 가이드
+- 사용자가 "새로운 기능 [X]를 만들어줘"라고 요청하면, `src/features/[X]` 폴더 아래에 components, hooks, pages, services, styles, utils 폴더를 자동으로 생성하고 기본 구조를 잡아주세요.
