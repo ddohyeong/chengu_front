@@ -1,0 +1,7 @@
+{
+  "name": "챙구",
+  "description": "내 물건을 똑똑하게 챙겨주는 귀여운 펭귄 친구, 챙구! 유통기한 관리부터 중고 거래 글 작성까지 한번에.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
