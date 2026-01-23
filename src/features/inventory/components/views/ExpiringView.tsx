@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { MapPin, Calendar, AlertCircle, Timer, Pencil, Trash2 } from 'lucide-react';
 import { Item, Location } from '@/shared/types';
 import { Header } from '@/shared/components/Header';
@@ -54,6 +54,11 @@ export const ExpiringView = ({
             </Badge>
           </div>
           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+            {item.userNickname && (
+              <div className="flex items-center gap-1 text-[11px] text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md">
+                <span>👤 {item.userNickname}</span>
+              </div>
+            )}
             <div className="flex items-center gap-1 text-[11px] text-slate-500 font-medium">
               <MapPin size={12} className="text-slate-300" />
               {loc?.icon} {loc?.name}
@@ -87,7 +92,9 @@ export const ExpiringView = ({
               이미 만료되었어요 ({expired.length})
             </h3>
             <div className="space-y-3">
-              {expired.map(item => <ItemCard key={item.id} item={item} />)}
+              {expired.map(item => (
+                <ItemCard key={item.id} item={item} />
+              ))}
             </div>
           </section>
         )}
@@ -99,7 +106,9 @@ export const ExpiringView = ({
               곧 만료 예정이에요 ({expiringSoon.length})
             </h3>
             <div className="space-y-3">
-              {expiringSoon.map(item => <ItemCard key={item.id} item={item} />)}
+              {expiringSoon.map(item => (
+                <ItemCard key={item.id} item={item} />
+              ))}
             </div>
           </section>
         )}

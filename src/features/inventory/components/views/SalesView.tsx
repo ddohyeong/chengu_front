@@ -9,7 +9,8 @@ import { CATEGORY_ICONS, CATEGORY_LABELS } from '@/shared/constants/inventory';
 export const SalesView = ({ 
   items, 
   onBack,
-  onSellItem 
+  onSellItem,
+  onNavigateToMyPage
 }: { 
   items: Item[], 
   onBack: () => void,

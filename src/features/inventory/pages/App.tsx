@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Plus, Home, Package } from 'lucide-react';
 import { Item, Location } from '@/shared/types';
 import * as Storage from '@/shared/services/storageService';
+import { authStorage } from '@/shared/services/authStorage';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { NavTab } from '@/shared/components/NavTab';
 import { DashboardView } from '../components/views/DashboardView';
 import { LocationsView } from '../components/views/LocationsView';
@@ -11,29 +13,47 @@ import { ItemModal } from '../components/modals/ItemModal';
 import { LocationModal } from '../components/modals/LocationModal';
 import { SalesModal } from '../components/modals/SalesModal';
 import { ReceiptModal } from '../components/modals/ReceiptModal';
+import { LoginPage } from '@/features/auth/pages/LoginPage';
+import { MyPage } from '@/features/auth/pages/MyPage';
+import { SignupModal } from '@/features/auth/components/SignupModal';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'locations' | 'sales' | 'expiring'>('dashboard');
+  const { isAuthenticated } = useAuth();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentView, setCurrentView] = useState<'dashboard' | 'locations' | 'sales' | 'expiring' | 'mypage'>('dashboard');
   const [locations, setLocations] = useState<Location[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [activeLocId, setActiveLocId] = useState<string>('');
+  const [userNickname, setUserNickname] = useState<string>('');
   
   // Modals
-  const [modalType, setModalType] = useState<'item' | 'location' | 'sales' | 'receipt' | null>(null);
+  const [modalType, setModalType] = useState<'item' | 'location' | 'sales' | 'receipt' | 'signup' | null>(null);
   const [editingItem, setEditingItem] = useState<Item | undefined>(undefined);
   const [editingLocation, setEditingLocation] = useState<Location | undefined>(undefined);
   const [preSelectedLocationId, setPreSelectedLocationId] = useState<string | undefined>(undefined);
 
+  // Check authentication on mount
   useEffect(() => {
-    const loadedLocations = Storage.getLocations();
-    setLocations(loadedLocations);
-    setItems(Storage.getItems());
-    
-    // Initialize active location if not set
-    if (loadedLocations.length > 0 && !activeLocId) {
-      setActiveLocId(loadedLocations[0].id);
+    const authenticated = isAuthenticated();
+    setIsLoggedIn(authenticated);
+    const savedNickname = authStorage.getNickname();
+    if (savedNickname) {
+      setUserNickname(savedNickname);
     }
-  }, []); // Run once on mount
+  }, []);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      const loadedLocations = Storage.getLocations();
+      setLocations(loadedLocations);
+      setItems(Storage.getItems());
+      
+      // Initialize active location if not set
+      if (loadedLocations.length > 0 && !activeLocId) {
+        setActiveLocId(loadedLocations[0].id);
+      }
+    }
+  }, [isLoggedIn]); // Run when login status changes
 
   const refreshData = () => {
     const locs = Storage.getLocations();
@@ -45,7 +65,12 @@ export default function App() {
   };
 
   const handleSaveItem = (item: Item) => {
-    Storage.saveItem(item);
+    // Add user nickname if new item
+    const itemToSave: Item = {
+      ...item,
+      userNickname: userNickname || undefined,
+    };
+    Storage.saveItem(itemToSave);
     refreshData();
   };
 
@@ -73,7 +98,12 @@ export default function App() {
   };
 
   const handleBulkAddItems = (newItems: Item[]) => {
-    newItems.forEach(item => Storage.saveItem(item));
+    // Add user nickname to bulk items
+    const itemsWithNickname = newItems.map(item => ({
+      ...item,
+      userNickname: userNickname || undefined,
+    }));
+    itemsWithNickname.forEach(item => Storage.saveItem(item));
     refreshData();
   };
 
@@ -81,6 +111,42 @@ export default function App() {
     setActiveLocId(locId);
     setCurrentView('locations');
   };
+
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+    // Nickname is already saved in authStorage by useAuth hook
+    const savedNickname = authStorage.getNickname();
+    if (savedNickname) {
+      setUserNickname(savedNickname);
+    }
+    setCurrentView('dashboard');
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setCurrentView('dashboard');
+    setUserNickname('');
+  };
+
+  // Show login page if not authenticated
+  if (!isLoggedIn) {
+    return (
+      <div className="h-full bg-slate-50 flex flex-col relative max-w-md mx-auto shadow-2xl overflow-hidden">
+        <LoginPage 
+          onLoginSuccess={handleLoginSuccess}
+          onShowSignup={() => setModalType('signup')}
+        />
+        <SignupModal 
+          isOpen={modalType === 'signup'} 
+          onClose={() => setModalType(null)}
+          onSignupSuccess={() => {
+            // After signup, can show login or auto-login
+            setModalType(null);
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="h-full bg-slate-50 flex flex-col relative max-w-md mx-auto shadow-2xl overflow-hidden">
@@ -94,6 +160,7 @@ export default function App() {
             onNavigateToLocation={handleNavigateToLocation}
             onNavigateToSales={() => setCurrentView('sales')}
             onNavigateToExpiring={() => setCurrentView('expiring')}
+            onNavigateToMyPage={() => setCurrentView('mypage')}
             onAddItem={() => {
               setEditingItem(undefined);
               setPreSelectedLocationId(activeLocId || undefined);
@@ -130,6 +197,7 @@ export default function App() {
               setEditingItem(item);
               setModalType('sales');
             }}
+            onBack={() => setCurrentView('dashboard')}
           />
         )}
         {currentView === 'sales' && (
@@ -152,6 +220,12 @@ export default function App() {
               setModalType('item');
             }}
             onDeleteItem={handleDeleteItem}
+          />
+        )}
+        {currentView === 'mypage' && (
+          <MyPage 
+            onBack={() => setCurrentView('dashboard')}
+            onLogout={handleLogout}
           />
         )}
       </div>
@@ -216,6 +290,11 @@ export default function App() {
          onClose={() => setModalType(null)}
          onSaveItems={handleBulkAddItems}
          locations={locations}
+      />
+
+      <SignupModal 
+        isOpen={modalType === 'signup'} 
+        onClose={() => setModalType(null)}
       />
     </div>
   );

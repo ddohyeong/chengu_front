@@ -19,6 +19,8 @@ export interface Item {
   imageUrl?: string;
   note?: string;
   status: 'active' | 'sold' | 'discarded';
+  userId?: string | null;
+  userNickname?: string;
 }
 
 export interface SalesListing {
@@ -32,4 +34,36 @@ export interface ReceiptItem {
   name: string;
   category: Category;
   subCategory?: string;
+}
+
+// Auth Types
+export interface User {
+  id?: string | null;
+  signId: string;
+  signPw: string;
+  nickname: string;
+}
+
+export interface LoginRequest {
+  signId: string;
+  signPw: string;
+}
+
+export interface LoginResponse {
+  accessToken: string;
+  nickname: string;
+}
+
+export interface SignupRequest {
+  signId: string;
+  signPw: string;
+  nickname: string;
+}
+
+// API Common Response
+export interface ApiResponse<T> {
+  success: boolean;
+  code: number;
+  message: string;
+  body: T;
 }

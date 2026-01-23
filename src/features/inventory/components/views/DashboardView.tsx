@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { MapPin, Plus, AlertCircle, Clock, ChevronRight, Package, Sparkles, Camera, Timer } from 'lucide-react';
+import { useMemo } from 'react';
+import { MapPin, Plus, AlertCircle, Clock, ChevronRight, Package, Sparkles, Camera, Timer, User } from 'lucide-react';
 import { Item, Location } from '@/shared/types';
 import { Header } from '@/shared/components/Header';
 import { ChaengguAvatar } from '@/shared/components/ChaengguAvatar';
@@ -11,7 +11,8 @@ export const DashboardView = ({
   onNavigateToLocation,
   onAddItem,
   onNavigateToSales,
-  onNavigateToExpiring
+  onNavigateToExpiring,
+  onNavigateToMyPage
 }: { 
   items: Item[], 
   locations: Location[], 
@@ -19,7 +20,8 @@ export const DashboardView = ({
   onNavigateToLocation: (locId: string) => void,
   onAddItem: () => void,
   onNavigateToSales: () => void,
-  onNavigateToExpiring: () => void
+  onNavigateToExpiring: () => void,
+  onNavigateToMyPage: () => void
 }) => {
   const { expiringSoon, expired, sellableCount } = useMemo(() => {
     const today = new Date();
@@ -54,6 +56,14 @@ export const DashboardView = ({
       <Header 
         showLogo 
         subtitle="오늘도 물건들을 꼼꼼히 살피는 중!" 
+        action={
+          <button 
+            onClick={onNavigateToMyPage}
+            className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors"
+          >
+            <User size={20} />
+          </button>
+        }
       />
       
       <div className="p-5 space-y-6">

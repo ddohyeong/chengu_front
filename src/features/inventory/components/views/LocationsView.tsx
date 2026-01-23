@@ -1,4 +1,3 @@
-import React from 'react';
 import { Plus, Settings, Calendar, Trash2, AlertCircle, ShoppingBag, Pencil } from 'lucide-react';
 import { Item, Location } from '@/shared/types';
 import { Header } from '@/shared/components/Header';
@@ -17,7 +16,8 @@ export const LocationsView = ({
   onAddLocation,
   onEditLocation,
   onDeleteLocation,
-  onSellItem
+  onSellItem,
+  onBack,
 }: { 
   locations: Location[], 
   items: Item[], 
@@ -29,7 +29,8 @@ export const LocationsView = ({
   onAddLocation: () => void,
   onEditLocation: (loc: Location) => void,
   onDeleteLocation: (id: string) => void,
-  onSellItem: (item: Item) => void
+  onSellItem: (item: Item) => void,
+  onBack: () => void
 }) => {
   const activeLocation = locations.find(l => l.id === activeLocId);
   const locationItems = items.filter(i => i.locationId === activeLocId && i.status === 'active');
@@ -39,6 +40,7 @@ export const LocationsView = ({
       <Header 
         title="보관함" 
         subtitle="어디에 무엇이 있나 볼까요?" 
+        onBack={onBack}
         action={
           <button 
             onClick={onAddLocation}
@@ -120,7 +122,12 @@ export const LocationsView = ({
                     )}
                   </div>
                   
-                  <div className="mt-3 flex items-center gap-4">
+                  <div className="mt-3 flex items-center gap-4 flex-wrap">
+                    {item.userNickname && (
+                      <div className="flex items-center gap-1.5 text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded-md">
+                        <span>👤 {item.userNickname}</span>
+                      </div>
+                    )}
                     {item.expiryDate && (
                       <div className="flex items-center gap-1.5 text-xs text-slate-500">
                         <Calendar size={12} />
@@ -153,17 +160,6 @@ export const LocationsView = ({
         )}
       </div>
 
-      {/* Floating Add Button */}
-      {activeLocation && (
-        <div className="absolute bottom-24 right-5">
-          <button 
-            onClick={() => onAddItem(activeLocId)}
-            className="bg-slate-900 text-white w-14 h-14 rounded-full shadow-xl shadow-slate-300 flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
-          >
-            <Plus size={28} />
-          </button>
-        </div>
-      )}
     </div>
   );
 };
