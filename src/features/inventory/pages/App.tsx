@@ -74,6 +74,11 @@ export default function App() {
     setModalType('location');
   };
 
+  const openSalesModal = (item: Item) => {
+    setEditingItem(item);
+    setModalType('sales');
+  };
+
   const handleNavigateToLocation = (locId: string) => {
     setActiveLocId(locId);
     setCurrentView('locations');
@@ -116,16 +121,13 @@ export default function App() {
             items={items}
             activeLocId={activeLocId}
             onSelectLocation={setActiveLocId}
-            onAddItem={(locId) => openItemModal(locId)}
+            onAddItem={openItemModal}
             onEditItem={(item) => openItemModal(undefined, item)}
             onDeleteItem={deleteItem}
-            onAddLocation={() => openLocationModal()}
-            onEditLocation={(loc) => openLocationModal(loc)}
+            onAddLocation={openLocationModal}
+            onEditLocation={openLocationModal}
             onDeleteLocation={deleteLocation}
-            onSellItem={(item) => {
-              setEditingItem(item);
-              setModalType('sales');
-            }}
+            onSellItem={openSalesModal}
             onBack={() => setCurrentView('dashboard')}
           />
         )}
@@ -133,10 +135,7 @@ export default function App() {
           <SalesView
             items={items}
             onBack={() => setCurrentView('dashboard')}
-            onSellItem={(item) => {
-              setEditingItem(item);
-              setModalType('sales');
-            }}
+            onSellItem={openSalesModal}
           />
         )}
         {currentView === 'expiring' && (
