@@ -1,26 +1,19 @@
-import React, { useMemo } from 'react';
 import { Sparkles, Coins } from 'lucide-react';
 import { Item } from '@/shared/types';
 import { Header } from '@/shared/components/Header';
 import { ChaengguAvatar } from '@/shared/components/ChaengguAvatar';
 import { Badge } from '@/shared/components/Badge';
 import { CATEGORY_ICONS, CATEGORY_LABELS } from '@/shared/constants/inventory';
+import { useInventoryStats } from '../../hooks/useInventoryStats';
 
-export const SalesView = ({ 
-  items, 
-  onBack,
-  onSellItem,
-  onNavigateToMyPage
-}: { 
-  items: Item[], 
-  onBack: () => void,
-  onSellItem: (item: Item) => void
-}) => {
-  const sellableItems = useMemo(() => {
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    return items.filter(i => i.status === 'active' && new Date(i.purchaseDate) < sixMonthsAgo);
-  }, [items]);
+interface SalesViewProps {
+  items: Item[];
+  onBack: () => void;
+  onSellItem: (item: Item) => void;
+}
+
+export const SalesView = ({ items, onBack, onSellItem }: SalesViewProps) => {
+  const { sellableItems } = useInventoryStats(items);
 
   return (
     <div className="h-full flex flex-col bg-slate-50">
