@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { ChevronRight, X } from 'lucide-react';
 import { Item, Location } from '@/shared/types';
 import { ChaengguAvatar } from '@/shared/components/ChaengguAvatar';
 import {
-  fetchCategories,
-  CategoryDto,
   idToCategory,
   getParentId,
   CHILD_TO_PARENT_ID,
 } from '@/features/inventory/services/categoryService';
+import { useCategoriesQuery } from '@/features/inventory/hooks/useCategoriesQuery';
 
 export const ItemModal = ({
   isOpen,
@@ -35,12 +33,8 @@ export const ItemModal = ({
   const [discardDate, setDiscardDate] = useState('');
   const [note, setNote] = useState('');
 
-  // React Query로 카테고리 목록 캐싱 조회
-  const { data: categories = [] } = useQuery<CategoryDto[]>({
-    queryKey: ['categories'],
-    queryFn: fetchCategories,
-    staleTime: 1000 * 60 * 10, // 10분간 캐시 유지
-  });
+  // 카테고리 목록 조회 (훅으로 중앙화)
+  const { data: categories = [] } = useCategoriesQuery();
 
   // 현재 선택된 부모 카테고리의 자식 목록
   const selectedParent = categories.find((c) => c.id === parentCategoryId);
