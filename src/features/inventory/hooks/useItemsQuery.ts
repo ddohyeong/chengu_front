@@ -30,6 +30,18 @@ export const useSaveItemMutation = () => {
 };
 
 /**
+ * 물건 수정
+ * PATCH /api/v1/items/{itemId}
+ */
+export const useUpdateItemMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (item: Item) => itemApi.updateItem(item),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ITEMS_QUERY_KEY }),
+  });
+};
+
+/**
  * 물건 삭제
  * DELETE /api/v1/items
  */

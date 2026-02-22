@@ -102,14 +102,6 @@ const toSaveDto = (item: Item): SaveItemDto => {
   };
 };
 
-// ─── 새 item 여부 판별 ───────────────────────────────────────────────────────
-// ItemModal에서 신규 아이템은 'item-{timestamp}' 형태의 ID를 부여함
-// 백엔드에서 온 아이템은 순수 숫자 문자열 ID를 가짐
-
-const isBackendItem = (id: string): boolean => {
-  return /^\d+$/.test(id);
-};
-
 // ─── API 함수 ────────────────────────────────────────────────────────────────
 
 /** 전체 물건 목록 조회 */
@@ -124,12 +116,12 @@ export const getItems = async (): Promise<Item[]> => {
  * - 기존 (백엔드 ID): DELETE 후 POST (백엔드에 PUT 없음)
  */
 export const saveItem = async (item: Item): Promise<void> => {
-  if (isBackendItem(item.id)) {
-    // 기존 아이템: 삭제 후 재생성
-    await deleteItem(item.id);
-  }
   await apiClient.post('/items', [toSaveDto(item)]);
 };
+
+export const updateItem = async (item: Item): Promise<void> => {
+  await apiClient.patch(`/items/${item.id}`, toSaveDto(item));
+}
 
 /**
  * 물건 일괄 등록 (영수증 스캔 등)

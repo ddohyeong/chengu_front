@@ -10,7 +10,7 @@ import {
   useItemsQuery,
   useSaveItemMutation,
   useDeleteItemMutation,
-  useBulkCreateItemsMutation,
+  useBulkCreateItemsMutation, useUpdateItemMutation,
 } from './useItemsQuery';
 
 interface UseInventoryOptions {
@@ -42,12 +42,23 @@ export const useInventory = ({ isLoggedIn, userNickname }: UseInventoryOptions) 
 
   // ── 물건 뮤테이션 ──────────────────────────────────────────
   const saveItemMutation = useSaveItemMutation();
+  const updateItemMutation = useUpdateItemMutation()
   const deleteItemMutation = useDeleteItemMutation();
   const bulkCreateMutation = useBulkCreateItemsMutation();
 
   const saveItem = async (item: Item) => {
     try {
-      await saveItemMutation.mutateAsync({ ...item, userNickname: userNickname || undefined });
+      // ID 존재 여부에 따라 다른 Mutation 호출
+      // ID 가 존재하지 않으면 날짜를 넣는등 패턴이 존재하기에 해당 로직 가능
+      if (/^\d+$/.test(item.id)) {
+        // ID가 있으면 이미 존재하는 물건 -> 수정(Update)
+        await updateItemMutation.mutateAsync({ ...item, userNickname: userNickname || undefined });
+      } else {
+        // ID가 없으면 새로운 물건 -> 생성(Create)
+        await saveItemMutation.mutateAsync({ ...item, userNickname: userNickname || undefined });
+      }
+
+
     } catch (error) {
       console.error('물건 저장 실패:', error);
     }
