@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ChevronRight, X } from 'lucide-react';
-import { Item, Location, Category } from '@/shared/types';
+import { Item, Location } from '@/shared/types';
 import { ChaengguAvatar } from '@/shared/components/ChaengguAvatar';
-import { CATEGORY_LABELS, SUB_CATEGORIES } from '@/shared/constants/inventory';
+import {
+  fetchCategories,
+  CategoryDto,
+  idToCategory,
+  getParentId,
+  CHILD_TO_PARENT_ID,
+} from '@/features/inventory/services/categoryService';
 
 export const ItemModal = ({
   isOpen,
@@ -21,43 +28,77 @@ export const ItemModal = ({
 }) => {
   const [name, setName] = useState('');
   const [locationId, setLocationId] = useState('');
-  const [category, setCategory] = useState<Category>('food');
-  const [subCategory, setSubCategory] = useState('');
+  const [parentCategoryId, setParentCategoryId] = useState<number | null>(null);
+  const [childCategoryId, setChildCategoryId] = useState<number | null>(null);
   const [purchaseDate, setPurchaseDate] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [discardDate, setDiscardDate] = useState('');
   const [note, setNote] = useState('');
 
+  // React Query로 카테고리 목록 캐싱 조회
+  const { data: categories = [] } = useQuery<CategoryDto[]>({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
+    staleTime: 1000 * 60 * 10, // 10분간 캐시 유지
+  });
+
+  // 현재 선택된 부모 카테고리의 자식 목록
+  const selectedParent = categories.find((c) => c.id === parentCategoryId);
+  const children = selectedParent?.children ?? [];
+
+  // 부모 카테고리 변경 시 자식 선택 초기화
+  const handleParentChange = (id: number) => {
+    setParentCategoryId(id);
+    setChildCategoryId(null);
+  };
+
   useEffect(() => {
-    if (isOpen) {
-      const today = new Date().toISOString().split('T')[0];
-      if (initialData) {
-        setName(initialData.name);
-        setLocationId(initialData.locationId);
-        setCategory(initialData.category);
-        setSubCategory(initialData.subCategory || '');
-        setPurchaseDate(initialData.purchaseDate);
-        setExpiryDate(initialData.expiryDate || '');
-        setDiscardDate(initialData.discardDate || '');
-        setNote(initialData.note || '');
+    if (!isOpen) return;
+    const today = new Date().toISOString().split('T')[0];
+
+    if (initialData) {
+      setName(initialData.name);
+      setLocationId(initialData.locationId);
+      setPurchaseDate(initialData.purchaseDate);
+      setExpiryDate(initialData.expiryDate || '');
+      setDiscardDate(initialData.discardDate || '');
+      setNote(initialData.note || '');
+
+      // categoryId로 부모/자식 복원
+      const cid = initialData.categoryId;
+      if (cid !== undefined) {
+        const isChild = CHILD_TO_PARENT_ID[cid] !== undefined;
+        if (isChild) {
+          setParentCategoryId(CHILD_TO_PARENT_ID[cid]);
+          setChildCategoryId(cid);
+        } else {
+          setParentCategoryId(cid);
+          setChildCategoryId(null);
+        }
       } else {
-        setName('');
-        setLocationId(preSelectedLocationId || (locations[0]?.id || ''));
-        setCategory('food');
-        setSubCategory(SUB_CATEGORIES['food'][0]);
-        setPurchaseDate(today);
-        setExpiryDate('');
-        setDiscardDate('');
-        setNote('');
+        // 구버전 아이템(categoryId 없음): category 문자열로 초기 부모 선택
+        setParentCategoryId(null);
+        setChildCategoryId(null);
       }
+    } else {
+      setName('');
+      setLocationId(preSelectedLocationId || (locations[0]?.id || ''));
+      setParentCategoryId(categories[0]?.id ?? null);
+      setChildCategoryId(null);
+      setPurchaseDate(today);
+      setExpiryDate('');
+      setDiscardDate('');
+      setNote('');
     }
   }, [isOpen, initialData, locations, preSelectedLocationId]);
 
+  // 카테고리 데이터가 로드됐을 때 신규 등록 초기값 설정
   useEffect(() => {
-    if (!initialData && isOpen && category) {
-       setSubCategory(SUB_CATEGORIES[category][0]);
+    if (!isOpen || initialData) return;
+    if (categories.length > 0 && parentCategoryId === null) {
+      setParentCategoryId(categories[0].id);
     }
-  }, [category, isOpen, initialData]);
+  }, [categories, isOpen, initialData, parentCategoryId]);
 
   if (!isOpen) return null;
 
@@ -88,16 +129,19 @@ export const ItemModal = ({
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-               <div>
+              <div>
                 <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">카테고리</label>
                 <div className="relative">
                   <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value as Category)}
+                    value={parentCategoryId ?? ''}
+                    onChange={(e) => handleParentChange(Number(e.target.value))}
                     className="w-full px-4 py-3 bg-slate-50 border-0 rounded-2xl text-slate-900 font-medium appearance-none focus:ring-2 focus:ring-slate-900"
                   >
-                    {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-                      <option key={key} value={key}>{label}</option>
+                    {categories.length === 0 && (
+                      <option value="">불러오는 중...</option>
+                    )}
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
                   <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 rotate-90" size={16} />
@@ -107,12 +151,14 @@ export const ItemModal = ({
                 <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">상세 분류</label>
                 <div className="relative">
                   <select
-                    value={subCategory}
-                    onChange={(e) => setSubCategory(e.target.value)}
+                    value={childCategoryId ?? ''}
+                    onChange={(e) => setChildCategoryId(e.target.value ? Number(e.target.value) : null)}
                     className="w-full px-4 py-3 bg-slate-50 border-0 rounded-2xl text-slate-900 font-medium appearance-none focus:ring-2 focus:ring-slate-900"
+                    disabled={children.length === 0}
                   >
-                     {SUB_CATEGORIES[category].map((sub) => (
-                      <option key={sub} value={sub}>{sub}</option>
+                    <option value="">전체</option>
+                    {children.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
                   <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 rotate-90" size={16} />
@@ -184,17 +230,25 @@ export const ItemModal = ({
           <button
             onClick={() => {
               if (!name || !locationId) return;
+              // 선택된 카테고리 ID 결정: 자식 > 부모 순으로 우선
+              const resolvedCategoryId = childCategoryId ?? parentCategoryId ?? undefined;
+              // 자식 카테고리 이름 (상세 분류 표시용)
+              const subCategoryName = childCategoryId
+                ? children.find((c) => c.id === childCategoryId)?.name
+                : undefined;
+
               onSave({
                 id: initialData?.id || `item-${Date.now()}`,
                 name,
                 locationId,
-                category,
-                subCategory,
+                category: resolvedCategoryId ? idToCategory(resolvedCategoryId) : 'misc',
+                categoryId: resolvedCategoryId,
+                subCategory: subCategoryName,
                 purchaseDate,
                 expiryDate: expiryDate || undefined,
                 discardDate: discardDate || undefined,
                 note: note || undefined,
-                status: initialData?.status || 'active'
+                status: initialData?.status || 'active',
               });
               onClose();
             }}

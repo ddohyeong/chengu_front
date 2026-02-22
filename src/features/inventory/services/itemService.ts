@@ -67,6 +67,7 @@ const toItem = (dto: FindItemDto): Item => {
     locationId: String(dto.storageId),
     name: dto.name,
     category: idToCategory(dto.itemCategoryId),
+    categoryId: dto.itemCategoryId,   // 백엔드 ID 그대로 보존 (정확한 roundtrip)
     subCategory: meta.subCategory,
     purchaseDate: dto.purchaseDate ?? '',
     expiryDate: dto.expirationDate || undefined,
@@ -90,7 +91,8 @@ const toSaveDto = (item: Item): SaveItemDto => {
   return {
     memberId,
     name: item.name,
-    itemCategoryId: categoryToId(item.category),
+    // categoryId(자식/부모 백엔드 ID)가 있으면 우선 사용, 없으면 string key로 폴백
+    itemCategoryId: item.categoryId ?? categoryToId(item.category),
     quantity: 1,
     storageId: Number(item.locationId),
     purchaseDate: item.purchaseDate ?? '',

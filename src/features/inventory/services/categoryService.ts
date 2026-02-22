@@ -1,7 +1,16 @@
-import { Category } from '@/shared/types';
+import { apiClient } from '@/shared/services/apiClient';
+import { ApiResponse, Category } from '@/shared/types';
 
-// 백엔드 카테고리 ID ↔ 프론트엔드 Category 키 매핑
-// GET /api/v1/categories 응답 기준 (2025년 실제 백엔드 데이터)
+// ─── 백엔드 카테고리 DTO ───────────────────────────────────────────────────────
+
+export interface CategoryDto {
+  id: number;
+  name: string;
+  children: CategoryDto[];
+}
+
+// ─── ID ↔ Category 키 매핑 ──────────────────────────────────────────────────
+// GET /api/v1/categories 응답 기준 (실제 백엔드 데이터)
 // 1:의류, 2:식품, 3:전자기기, 4:생활용품, 5:가구/인테리어, 6:도서/문구, 7:스포츠/레저, 8:뷰티/미용
 
 const CATEGORY_TO_ID: Record<Category, number> = {
@@ -25,7 +34,7 @@ const PARENT_ID_TO_CATEGORY: Record<number, Category> = {
 };
 
 // 자식 카테고리 ID → 부모 ID 매핑 (실제 백엔드 데이터 기준)
-const CHILD_TO_PARENT_ID: Record<number, number> = {
+export const CHILD_TO_PARENT_ID: Record<number, number> = {
   // 의류(1) children: 9~14
   9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1,
   // 식품(2) children: 15~20
@@ -44,8 +53,10 @@ const CHILD_TO_PARENT_ID: Record<number, number> = {
   44: 8, 45: 8, 46: 8, 47: 8,
 };
 
+// ─── 변환 헬퍼 ──────────────────────────────────────────────────────────────
+
 /**
- * 프론트엔드 Category 키 → 백엔드 itemCategoryId (부모 카테고리)
+ * 프론트엔드 Category 키 → 백엔드 부모 카테고리 ID
  */
 export const categoryToId = (category: Category): number => {
   return CATEGORY_TO_ID[category] ?? 4; // 기본값: 생활용품(misc)
@@ -56,14 +67,25 @@ export const categoryToId = (category: Category): number => {
  * 자식 ID인 경우 부모 카테고리로 매핑
  */
 export const idToCategory = (id: number): Category => {
-  // 부모 ID (1~8)인 경우 바로 매핑
-  if (PARENT_ID_TO_CATEGORY[id]) {
-    return PARENT_ID_TO_CATEGORY[id];
-  }
-  // 자식 ID인 경우 부모 찾아서 매핑
+  if (PARENT_ID_TO_CATEGORY[id]) return PARENT_ID_TO_CATEGORY[id];
   const parentId = CHILD_TO_PARENT_ID[id];
-  if (parentId) {
-    return PARENT_ID_TO_CATEGORY[parentId] ?? 'misc';
-  }
-  return 'misc';
+  return parentId ? (PARENT_ID_TO_CATEGORY[parentId] ?? 'misc') : 'misc';
+};
+
+/**
+ * 자식 ID → 부모 ID 반환 (부모 ID 그대로면 null)
+ */
+export const getParentId = (id: number): number | null => {
+  return CHILD_TO_PARENT_ID[id] ?? null;
+};
+
+// ─── API 함수 ────────────────────────────────────────────────────────────────
+
+/**
+ * 전체 카테고리 트리 조회 (부모 + 자식 포함)
+ * GET /api/v1/categories
+ */
+export const fetchCategories = async (): Promise<CategoryDto[]> => {
+  const res = await apiClient.get<ApiResponse<CategoryDto[]>>('/categories');
+  return res.data.body;
 };
