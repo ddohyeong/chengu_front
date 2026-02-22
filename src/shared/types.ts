@@ -12,6 +12,7 @@ export interface Item {
   locationId: string;
   name: string;
   category: Category;
+  categoryId?: number;  // 백엔드 카테고리 ID (자식 또는 부모) - API 정확한 roundtrip을 위해 보존
   subCategory?: string;
   purchaseDate: string;
   expiryDate?: string;
