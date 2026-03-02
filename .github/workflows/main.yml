@@ -31,6 +31,7 @@ jobs:
           context: .
           platforms: linux/arm64 # 젯슨 나노 아키텍처
           push: true
+          no-cache: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chengu-front:latest
 
   deploy:
