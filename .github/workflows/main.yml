@@ -1,0 +1,51 @@
+name: Frontend CI/CD (React + Nginx)
+
+on:
+  push:
+    branches: [ main ] # 메인 브랜치에 푸시될 때 실행
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1. ARM64 빌드를 위한 에뮬레이터 설정 (젯슨 나노 필수)
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 2. Docker Hub 로그인
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 3. 이미지 빌드 및 푸시 (ARM64 플랫폼 지정)
+      - name: Build and Push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/arm64 # 젯슨 나노 아키텍처
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/chengu-front:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH Deploy to Jetson
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.JETSON_HOST }}
+          username: ${{ secrets.JETSON_USER }}
+          key: ${{ secrets.JETSON_SSH_KEY }}
+          port: 50031
+          script: |
+            cd /home/jetson7/Desktop/dohyeong/chenguApp
+            docker-compose pull chenguFront # 프론트엔드 이미지만 새로 받기
+            docker-compose up -d chenguFront # 프론트엔드 컨테이너만 껐다 켜기
+            docker system prune -f # 찌꺼기 이미지 삭제
